@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # Deploy the geist stack on the VPS. Invoked over SSH by the GitHub Actions deploy job.
-# The deployed image tag is passed in via the IMAGE_TAG environment variable
-# (the short commit SHA). Falls back to the .env value if unset.
+# The stack files (this script, docker-compose.prod.yml, Caddyfile, database/, backup.sh)
+# are copied onto the VPS by the CI deploy job via scp before this runs, so the VPS needs
+# no GitHub repo access. The deployed image tag is passed in via the IMAGE_TAG environment
+# variable (the short commit SHA); it falls back to the .env value if unset.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
-
-echo "[deploy] Updating repository (compose file, Caddyfile, scripts)..."
-git pull --ff-only
 
 # Persist the requested image tag into .env so manual restarts reuse the same commit.
 if [[ -n "${IMAGE_TAG:-}" ]]; then

@@ -158,9 +158,25 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Compute short SHA
         id: vars
         run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # Ship the stack files to the VPS so it needs no GitHub repo access.
+      # The VPS's own .env is never overwritten (not in source list).
+      - name: Copy stack files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          source: "docker-compose.prod.yml,Caddyfile,scripts/deploy.sh,scripts/backup.sh,scripts/setup.sh,database/init.sql"
+          target: /opt/geist
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -168,6 +184,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
           envs: IMAGE_TAG
           script: |
