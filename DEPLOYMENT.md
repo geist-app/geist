@@ -8,9 +8,14 @@ automatic rotating backups.
 ```
 merge to main
    └─▶ GitHub Actions: test → build geist-backend/geist-frontend → push to GHCR
-          └─▶ SSH to VPS → scripts/deploy.sh → docker compose pull && up -d
+          └─▶ scp stack files to VPS:/opt/geist → SSH → scripts/deploy.sh → compose pull && up -d
                  └─▶ caddy (443) → frontend → backend → postgres (persistent volume)
 ```
+
+The VPS needs **no GitHub repo access**: the deploy job copies the stack files
+(`docker-compose.prod.yml`, `Caddyfile`, `scripts/`, `database/init.sql`) to `/opt/geist` via scp on
+every deploy. The only credential the VPS needs is a `docker login ghcr.io` (a `read:packages` PAT)
+so it can pull the private images.
 
 ## Pipeline overview
 
@@ -18,8 +23,8 @@ merge to main
 - **build-backend / build-frontend** — build images and push to
   `ghcr.io/geist-app/geist-backend` and `ghcr.io/geist-app/geist-frontend`, tagged with the short
   commit SHA and `latest`. On PRs images are built but **not** pushed.
-- **deploy** — runs only on push/merge to `main`; SSHes to the VPS and runs `scripts/deploy.sh`
-  with `IMAGE_TAG=<short-sha>`.
+- **deploy** — runs only on push/merge to `main`; scps the stack files to `/opt/geist`, then SSHes
+  to the VPS and runs `scripts/deploy.sh` with `IMAGE_TAG=<short-sha>`.
 
 The running commit is exposed at `https://geist.online/api/info` → `{"version":"<short-sha>"}`.
 
@@ -35,6 +40,7 @@ Only used so the pipeline can reach and log into the VPS:
 | `VPS_HOST` | VPS IP or hostname |
 | `VPS_USER` | SSH user on the VPS |
 | `VPS_SSH_KEY` | Private SSH key whose public key is in the VPS `~/.ssh/authorized_keys` |
+| `VPS_SSH_PASSPHRASE` | *(optional)* passphrase for `VPS_SSH_KEY` if it has one (prefer a passphrase-less key) |
 | `VPS_SSH_PORT` | *(optional)* SSH port if not 22 |
 
 GHCR push needs **no** secret — the built-in `GITHUB_TOKEN` (`packages: write`) handles it.
