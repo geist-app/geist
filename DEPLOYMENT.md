@@ -52,29 +52,15 @@ Generate secrets with e.g. `openssl rand -hex 32`.
 
 ## One-time VPS bootstrap
 
-**Quick path:** after cloning the repo (step 2 below), run the guided setup script — it walks
-through Docker install, GHCR login, `.env` creation (auto-generating secrets), the DNS/firewall
-check, the first `docker compose up`, and the backup cron:
-
-```bash
-cd /opt/geist && bash scripts/setup.sh
-```
-
-The manual steps below do the same thing if you prefer to run them yourself.
+The VPS does **not** need to clone the repo — CI delivers the stack files by scp on every deploy.
+You only need to prepare Docker, a GHCR login, and a `.env`, then let the first merge deploy the rest.
 
 1. **Install Docker** (Engine + compose plugin):
    ```bash
    curl -fsSL https://get.docker.com | sh
    ```
 
-2. **Clone the repo** to `/opt/geist`:
-   ```bash
-   sudo git clone https://github.com/<owner>/<repo>.git /opt/geist
-   sudo chown -R "$USER" /opt/geist
-   cd /opt/geist
-   ```
-
-3. **Log in to GHCR** so the VPS can pull the private images. Create a GitHub Personal Access
+2. **Log in to GHCR** so the VPS can pull the private images. Create a GitHub Personal Access
    Token with the `read:packages` scope, then:
    ```bash
    echo "<PAT>" | docker login ghcr.io -u <github-username> --password-stdin
@@ -82,30 +68,40 @@ The manual steps below do the same thing if you prefer to run them yourself.
    In GitHub, set both `geist-backend` and `geist-frontend` packages to **Private** (Package
    settings → Change visibility) and link them to the repo.
 
-4. **Create `.env`**:
+3. **Create `/opt/geist/.env`** (this is the only file you place by hand; CI never overwrites it):
    ```bash
-   cp .env.example .env
-   # edit .env: set strong POSTGRES_PASSWORD / JWT_SECRET (keep DATABASE_URL in sync)
+   sudo mkdir -p /opt/geist && sudo chown -R "$USER" /opt/geist
+   cat > /opt/geist/.env <<EOF
+   POSTGRES_USER=geist
+   POSTGRES_PASSWORD=$(openssl rand -hex 32)
+   POSTGRES_DB=geist
+   JWT_SECRET=$(openssl rand -hex 32)
+   IMAGE_TAG=latest
+   EOF
+   # add DATABASE_URL using the password just generated:
+   PW=$(grep '^POSTGRES_PASSWORD=' /opt/geist/.env | cut -d= -f2)
+   echo "DATABASE_URL=postgresql://geist:${PW}@postgres:5432/geist" >> /opt/geist/.env
+   chmod 600 /opt/geist/.env
    ```
 
-5. **DNS + firewall**: point `geist.online` (and `www`) A/AAAA records at the VPS IP, and open
+4. **DNS + firewall**: point `geist.online` (and `www`) A/AAAA records at the VPS IP, and open
    ports **80** and **443** in the Strato firewall (Caddy needs 80 for the ACME challenge).
 
-6. **Start the stack**:
+5. **Deploy.** Merge to `main` (or run the workflow manually) — CI scps the stack files to
+   `/opt/geist` and starts everything. To trigger without a code change:
    ```bash
-   docker compose -f docker-compose.prod.yml pull
-   docker compose -f docker-compose.prod.yml up -d
-   docker compose -f docker-compose.prod.yml ps
+   gh workflow run "Build, Test and Deploy" --ref main
    ```
 
-7. **Install the backup cron** (daily at 03:00):
+6. **Install the backup cron** (daily at 03:00) — after the first deploy has placed the scripts:
    ```bash
    ( crontab -l 2>/dev/null; echo "0 3 * * * cd /opt/geist && bash scripts/backup.sh >> /opt/geist/backups/backup.log 2>&1" ) | crontab -
    ```
 
-8. **Add the GitHub Secrets** listed above (generate a deploy key with
-   `ssh-keygen -t ed25519 -C geist-deploy`, add the public key to the VPS `authorized_keys`, and put
-   the private key in `VPS_SSH_KEY`).
+7. **Add the GitHub Secrets** listed above. Generate a passphrase-less CI key
+   (`ssh-keygen -t ed25519 -C geist-ci -N ""`), add its public key to the VPS `~/.ssh/authorized_keys`,
+   and put the private key in `VPS_SSH_KEY`. (If the key has a passphrase, also set
+   `VPS_SSH_PASSPHRASE`.) This key is only for CI→VPS SSH/scp — it is unrelated to any GitHub access.
 
 After this, every merge to `main` deploys automatically.
 
