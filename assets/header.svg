@@ -38,7 +38,7 @@
     </g>
   </g>
 
-  <!-- "PriceGhost" text - Price solid, Ghost with fade effect -->
-  <text x="215" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="#1f2937">Price</text>
-  <text x="339" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="url(#textFade)" filter="url(#glow)">Ghost</text>
+  <!-- "Geist" text - Ge solid, ist with fade effect -->
+  <text x="215" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="#1f2937">Ge</text>
+  <text x="275" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="url(#textFade)" filter="url(#glow)">ist</text>
 </svg>

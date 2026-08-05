@@ -1,6 +1,6 @@
 # Deployment (Strato VPS + GHCR)
 
-The app is deployed to a Strato VPS at **https://geist.online**. GitHub Actions builds and tests the
+The app is deployed to a Strato VPS at **https://geist-app.com**. GitHub Actions builds and tests the
 images, pushes them to the **private** GitHub Container Registry (GHCR), and then SSHes into the VPS
 to pull and run them with Docker Compose. Postgres runs 24/7 on the VPS with a persistent volume and
 automatic rotating backups.
@@ -26,7 +26,7 @@ so it can pull the private images.
 - **deploy** — runs only on push/merge to `main`; scps the stack files to `/opt/geist`, then SSHes
   to the VPS and runs `scripts/deploy.sh` with `IMAGE_TAG=<short-sha>`.
 
-The running commit is exposed at `https://geist.online/api/info` → `{"version":"<short-sha>"}`.
+The running commit is exposed at `https://geist-app.com/api/info` → `{"version":"<short-sha>"}`.
 
 ## Config: two separate places
 
@@ -84,7 +84,7 @@ You only need to prepare Docker, a GHCR login, and a `.env`, then let the first 
    chmod 600 /opt/geist/.env
    ```
 
-4. **DNS + firewall**: point `geist.online` (and `www`) A/AAAA records at the VPS IP, and open
+4. **DNS + firewall**: point `geist-app.com` (and `www`) A/AAAA records at the VPS IP, and open
    ports **80** and **443** in the Strato firewall (Caddy needs 80 for the ACME challenge).
 
 5. **Deploy.** Merge to `main` (or run the workflow manually) — CI scps the stack files to

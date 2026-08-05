@@ -1,6 +1,6 @@
 {
-  "name": "PriceGhost",
-  "short_name": "PriceGhost",
+  "name": "Geist",
+  "short_name": "Geist",
   "description": "Track product prices and get notified when they drop",
   "start_url": "/",
   "display": "standalone",
