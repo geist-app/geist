@@ -45,7 +45,7 @@ services:
       - backend
     restart: unless-stopped
 
-  # Reverse proxy with automatic HTTPS (Let's Encrypt) for geist.online
+  # Reverse proxy with automatic HTTPS (Let's Encrypt) for geist-app.com
   caddy:
     image: caddy:2-alpine
     container_name: geist-caddy

@@ -98,7 +98,7 @@ echo
 bold "[4/6] DNS & firewall"
 info "Caddy needs to reach the internet on ports 80 and 443 to obtain TLS certs."
 info "Make sure BEFORE the first start:"
-info "  • geist.online and www.geist.online A/AAAA records point at this VPS."
+info "  • geist-app.com and www.geist-app.com A/AAAA records point at this VPS."
 info "  • Ports 80 and 443 are open in the Strato firewall."
 ask_yn "Have you done both?" n && ok "Great." || warn "Do this before the app can serve HTTPS."
 echo
@@ -110,7 +110,7 @@ if ask_yn "Pull images and start the stack now?"; then
   $COMPOSE up -d
   echo
   $COMPOSE ps
-  ok "Stack started. Check https://geist.online shortly (cert issuance can take ~30s)."
+  ok "Stack started. Check https://geist-app.com shortly (cert issuance can take ~30s)."
 else
   info "Later, run: $COMPOSE up -d"
 fi
@@ -132,4 +132,4 @@ echo
 
 bold "=== Setup complete ==="
 info "Deployments now happen automatically on merge to main (see DEPLOYMENT.md)."
-info "Verify the running commit: curl -s https://geist.online/api/info"
+info "Verify the running commit: curl -s https://geist-app.com/api/info"

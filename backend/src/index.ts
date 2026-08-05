@@ -302,7 +302,7 @@ async function startServer() {
     await runMigrations();
 
     app.listen(PORT, () => {
-      console.log(`PriceGhost API server running on port ${PORT}`);
+      console.log(`Geist API server running on port ${PORT}`);
 
       // Start the background price checker
       if (process.env.NODE_ENV !== 'test') {
