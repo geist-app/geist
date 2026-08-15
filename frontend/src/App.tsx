@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import ProductDetail from './pages/ProductDetail';
 import Settings from './pages/Settings';
@@ -88,6 +89,7 @@ function AppRoutes() {
           </PublicRoute>
         }
       />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
         element={

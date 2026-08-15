@@ -87,6 +87,9 @@ export default function Settings() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [resetLinkInfo, setResetLinkInfo] = useState<{ url: string; email: string; expiresAt: string } | null>(null);
+  const [generatingResetId, setGeneratingResetId] = useState<number | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -619,6 +622,36 @@ export default function Settings() {
       setSuccess(`User role updated to ${newRole}`);
     } catch {
       setError('Failed to update user role');
+    }
+  };
+
+  const handleCreateResetLink = async (userId: number) => {
+    clearMessages();
+    setGeneratingResetId(userId);
+    try {
+      const res = await adminApi.createResetLink(userId);
+      setResetLinkInfo({
+        url: res.data.reset_url,
+        email: res.data.email,
+        expiresAt: res.data.expires_at,
+      });
+      setLinkCopied(false);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to generate reset link');
+    } finally {
+      setGeneratingResetId(null);
+    }
+  };
+
+  const handleCopyResetLink = async () => {
+    if (!resetLinkInfo) return;
+    try {
+      await navigator.clipboard.writeText(resetLinkInfo.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setError('Failed to copy link');
     }
   };
 
@@ -2091,6 +2124,13 @@ export default function Settings() {
                           </td>
                           <td>{new Date(user.created_at).toLocaleDateString()}</td>
                           <td className="actions">
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleCreateResetLink(user.id)}
+                              disabled={generatingResetId === user.id}
+                            >
+                              {generatingResetId === user.id ? <span className="spinner" /> : 'Reset link'}
+                            </button>
                             {user.id !== profile?.id && (
                               <button
                                 className="btn btn-danger btn-sm"
@@ -2104,6 +2144,66 @@ export default function Settings() {
                       ))}
                     </tbody>
                   </table>
+                )}
+
+                {resetLinkInfo && (
+                  <div
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1000,
+                      padding: '1rem',
+                    }}
+                    onClick={() => setResetLinkInfo(null)}
+                  >
+                    <div
+                      style={{
+                        background: 'var(--surface)',
+                        borderRadius: '0.75rem',
+                        padding: '1.5rem',
+                        maxWidth: '540px',
+                        width: '100%',
+                        boxShadow: 'var(--shadow-lg)',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <h3 style={{ marginTop: 0, color: 'var(--text)' }}>Password reset link</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                        Send this one-time link to <strong>{resetLinkInfo.email}</strong>. It expires on{' '}
+                        <strong>{new Date(resetLinkInfo.expiresAt).toLocaleString()}</strong> and stops working
+                        once a new password has been set.
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                        <input
+                          readOnly
+                          value={resetLinkInfo.url}
+                          onFocus={(e) => e.target.select()}
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem 0.75rem',
+                            border: '1px solid var(--border)',
+                            borderRadius: '0.5rem',
+                            background: 'var(--bg)',
+                            color: 'var(--text)',
+                            fontSize: '0.8125rem',
+                            fontFamily: 'monospace',
+                          }}
+                        />
+                        <button className="btn btn-primary btn-sm" onClick={handleCopyResetLink}>
+                          {linkCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                      <div style={{ textAlign: 'right', marginTop: '1.25rem' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setResetLinkInfo(null)}>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </>

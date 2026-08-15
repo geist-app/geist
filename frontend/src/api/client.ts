@@ -41,6 +41,9 @@ export const authApi = {
 
   getRegistrationStatus: () =>
     api.get<{ registration_enabled: boolean }>('/auth/registration-status'),
+
+  resetPassword: (token: string, password: string) =>
+    api.post<{ message: string }>('/auth/reset-password', { token, password }),
 };
 
 // Products API
@@ -400,6 +403,11 @@ export const adminApi = {
     }),
 
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+
+  createResetLink: (id: number) =>
+    api.post<{ reset_url: string; email: string; expires_at: string }>(
+      `/admin/users/${id}/reset-link`
+    ),
 
   setUserAdmin: (id: number, isAdmin: boolean) =>
     api.put(`/admin/users/${id}/admin`, { is_admin: isAdmin }),

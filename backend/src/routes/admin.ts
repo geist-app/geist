@@ -1,7 +1,8 @@
 import { Router, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { AuthRequest, authMiddleware } from '../middleware/auth';
-import { userQueries, systemSettingsQueries } from '../models';
+import { userQueries, systemSettingsQueries, passwordResetTokenQueries } from '../models';
 
 const router = Router();
 
@@ -150,6 +151,47 @@ router.put('/users/:id/admin', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Error updating admin status:', error);
     res.status(500).json({ error: 'Failed to update admin status' });
+  }
+});
+
+// Generate a password reset link for a user.
+// Returns the full link for the admin to deliver manually (no email is sent).
+router.post('/users/:id/reset-link', async (req: AuthRequest, res: Response) => {
+  try {
+    const targetId = parseInt(req.params.id, 10);
+
+    if (isNaN(targetId)) {
+      res.status(400).json({ error: 'Invalid user ID' });
+      return;
+    }
+
+    const user = await userQueries.findById(targetId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Generate a high-entropy token; only its SHA-256 hash is persisted.
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const ttlHours = parseInt(process.env.PASSWORD_RESET_TOKEN_TTL_HOURS || '24', 10);
+    const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+    await passwordResetTokenQueries.create(targetId, tokenHash, expiresAt);
+
+    // Prefer the configured public URL; fall back to the request's own origin.
+    const baseUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+
+    res.json({
+      reset_url: resetUrl,
+      email: user.email,
+      expires_at: expiresAt.toISOString(),
+    });
+  } catch (error) {
+    console.error('Error generating reset link:', error);
+    res.status(500).json({ error: 'Failed to generate reset link' });
   }
 });
 

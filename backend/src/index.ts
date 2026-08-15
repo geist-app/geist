@@ -240,6 +240,22 @@ async function runMigrations() {
         ON notification_history(product_id);
     `);
 
+    // Create password_reset_tokens table for admin-generated reset links.
+    // Only the SHA-256 hash of the token is stored; the raw token lives only in the link.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) NOT NULL UNIQUE,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash
+        ON password_reset_tokens(token_hash);
+    `);
+
     console.log('Database migrations completed');
   } catch (error) {
     console.error('Migration error:', error);

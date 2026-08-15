@@ -5,6 +5,19 @@ All notable changes to Geist will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-08-16
+
+### Added
+
+- **Admin-driven password reset flow** - Admins can generate a one-time password reset link for any user
+  - "Reset link" button per user in the admin panel, with a copy-to-clipboard dialog
+  - No email server required — the admin delivers the link manually
+  - New public `/reset-password` page using the same password rules as registration (min. 8 characters, confirmation)
+  - Only the SHA-256 hash of the token is stored; links are single-use and expire (default 24h, configurable via `PASSWORD_RESET_TOKEN_TTL_HOURS`)
+  - Generating a new link invalidates any previous unused link for that user
+
+---
+
 ## [1.0.6] - 2026-01-26
 
 ### Added
@@ -219,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.0.7 | 2026-08-16 | Admin-driven password reset flow |
 | 1.0.6 | 2026-01-26 | Google Gemini AI support, self-hosted ntfy support |
 | 1.0.5 | 2026-01-25 | AI model selector, per-product AI controls, Gotify support, Ollama fixes |
 | 1.0.4 | 2026-01-24 | Multi-strategy price voting system with user selection for ambiguous prices |

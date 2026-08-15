@@ -351,6 +351,55 @@ export const systemSettingsQueries = {
   },
 };
 
+// Password reset token types and queries
+export interface PasswordResetToken {
+  id: number;
+  user_id: number;
+  token_hash: string;
+  expires_at: Date;
+  used_at: Date | null;
+  created_at: Date;
+}
+
+export const passwordResetTokenQueries = {
+  // Store a new token hash for a user. Any previous unused tokens for that user are
+  // invalidated first, so only the most recently generated link ever works.
+  create: async (
+    userId: number,
+    tokenHash: string,
+    expiresAt: Date
+  ): Promise<PasswordResetToken> => {
+    await pool.query(
+      'DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL',
+      [userId]
+    );
+    const result = await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [userId, tokenHash, expiresAt]
+    );
+    return result.rows[0];
+  },
+
+  // Look up a token by its hash only if it is unused and not yet expired.
+  findValidByHash: async (tokenHash: string): Promise<PasswordResetToken | null> => {
+    const result = await pool.query(
+      `SELECT * FROM password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+      [tokenHash]
+    );
+    return result.rows[0] || null;
+  },
+
+  markUsed: async (id: number): Promise<void> => {
+    await pool.query(
+      'UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [id]
+    );
+  },
+};
+
 // Product types and queries
 export type StockStatus = 'in_stock' | 'out_of_stock' | 'unknown';
 
